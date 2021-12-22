@@ -1,0 +1,27 @@
+{
+  "name": "blockchain-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IoanSava/Blockchain-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/IoanSava/Blockchain-Project/issues"
+  },
+  "homepage": "https://github.com/IoanSava/Blockchain-Project#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.4.1",
+    "openzeppelin-solidity": "4.4.1"
+  }
+}
