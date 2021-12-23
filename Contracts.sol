@@ -1,193 +1,102 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.0 <=0.8.7;
+pragma solidity >= 0.8.0 <=0.8.7;
 
-contract Marketplace {
-    address private admin;
-    address payable private managerAddress;
+import "./Ownable.sol";
+
+contract Marketplace is Ownable {
+    uint16 DEFAULT_REPUTATION = 5;
 
     manager private managerVar;
-    uint16 private numberOfManagers;
     mapping (address => manager) private managers;
 
-    task private taskVar;
-    uint16 private numberOfTasks;
-    mapping (address => task) private tasks;
-
     freelancer private freelancerVar;
-    uint16 private numberOfFreelancers;
     mapping (address => freelancer) private freelancers;
 
     assessor private assessorVar;
-    uint16 private numberOfAssessors;
     mapping (address => assessor) private assessors;
 
     contributor private contributorVar;
-    uint16 private numberOfContributors;
     mapping (address => contributor) private contributors;
+
+    task private taskVar;
+    uint16 private numberOfTasks;
+    mapping (uint16 => task) private tasks;
 
     struct manager {
         string name;
-        address managerAddress;
+    }
+
+    struct freelancer {
+        string name;
+        string category;
+        uint16 reputation;
+    }
+
+    struct assessor {
+        string name;
+        string category;
+    }
+
+    struct contributor {
+        string name;
+        uint16 numberOfTokens; // update after the implementation of token is done
+    }
+
+    enum TaskState {
+        Financing,
+        Financed,
+        Canceled,
+        Ready,
+        WorkInProgress,
+        Done,
+        NeedsArbitration,
+        Success,
+        Failed
     }
 
     struct task {
         string description;
         uint16 freelancerReward;
         uint16 assessorReward;
-        string taskCategory;
+        string category;
         address managerAddress;
+        TaskState state;
     }
 
-    struct freelancer {
-        string freelancerName;
-        string freelancerCategory;
-        uint16 reputation;
-        address freelancerAddress;
-    }
-
-    struct assessor {
-        string assessorName;
-        string assessorCategory;
-        address assessorAddress;
-    }
-
-    struct contributor {
-        string contributorName;
-        uint16 numberOfTokens;
-        address contributorAddress;
-    }
-
-    enum State {
-        Creating,
-        Financing,
-        Closed
-    }
-
-    State state;
-
-    
-    constructor(address payable _managerAddress, string memory _name) {
-        admin = msg.sender;
-        managerAddress = _managerAddress;
-        if (compareStrings(managers[payable(msg.sender)].name, "")) {
-            managerVar = manager(_name, msg.sender);
-            managers[msg.sender] = managerVar;
-            ++numberOfManagers;
-        }
-        state = State.Creating;
-        //     return "Manager created";
-        // } else {
-        //     return "This manager has already been created!";
-        // }
-    }
-
-    modifier onlyByAdmin() {
-        require(msg.sender == admin, "You're not an admin");
-        _;
-    }
+    constructor() {}
 
     function compareStrings(string memory str1, string memory str2) pure private returns (bool) {
         return (keccak256(abi.encodePacked((str1))) == keccak256(abi.encodePacked((str2))));
     }
 
-
-    // function createManager(string calldata _name) onlyByAdmin public returns (string memory) {
-    //     if (compareStrings(managers[payable(msg.sender)].name, "")) {
-    //         managerVar = manager(_name, msg.sender);
-    //         managers[msg.sender] = managerVar;
-    //         ++numberOfManagers;
-    //         return "Manager created";
-    //     } else {
-    //         return "This manager has already been created!";
-    //     }
-    // }
-
-    function createTask(address payable _managerAddress, string calldata _description, uint16 _freelancerReward, uint16 _assessorReward, string calldata _taskCategory) onlyByAdmin public returns (string memory) {
-        require(state == State.Creating);
-        if (compareStrings(tasks[payable(msg.sender)].description, "")) {
-            taskVar = task(_description, _freelancerReward, _assessorReward, _taskCategory, _managerAddress);
-            tasks[_managerAddress] = taskVar;
-            ++numberOfTasks;
-            state = State.Financing;
-            return "Task created";
-        } else {
-            return "You already have created a task!";
-        }
+    function createManager(string calldata _name) public returns (string memory) {
+        managerVar = manager(_name);
+        managers[msg.sender] = managerVar;
+        return "[Marketplace] Manager created";
     }
 
-    function getNumberOfTasks() public view returns (uint16) {
-        return numberOfTasks;
+    function createFreelancer(string calldata _name, string calldata _category) public returns (string memory) {
+        freelancerVar = freelancer(_name, _category, DEFAULT_REPUTATION);
+        freelancers[msg.sender] = freelancerVar;
+        return "[Marketplace] Freelancer created";
     }
 
-    function createFreelancer(string calldata _freelancerName, string calldata _freelancerCategory, address payable _freelancerAddress) public returns (string memory) {
-        require(state == State.Financing);
-        if (compareStrings(freelancers[payable(msg.sender)].freelancerName, "")) {
-            freelancerVar = freelancer(_freelancerName, _freelancerCategory, 5, _freelancerAddress);
-            freelancers[_freelancerAddress] = freelancerVar;
-            ++numberOfFreelancers;
-            return "Freelancer created";
-        } else {
-            return "The freelancer with this address already exists!";
-        }
+    function createAssessor(string calldata _name, string calldata _category) public returns (string memory) {
+        assessorVar = assessor(_name, _category);
+        assessors[msg.sender] = assessorVar;
+        return "[Marketplace] Assessor created";
     }
 
-    function getNumberOfFreelancers() public view returns (uint16) {
-        return numberOfFreelancers;
+    function createContributor(string calldata _name, uint16 _numberOfTokens) public returns (string memory) {
+        contributorVar = contributor(_name, _numberOfTokens);
+        contributors[msg.sender] = contributorVar;
+        return "[Marketplace] Contributor created";
     }
 
-    function createAssessor(string calldata _assessorName, string calldata _assessorCategory, address payable _assessorAddress) public returns (string memory) {
-        require(state == State.Financing);
-        if (compareStrings(assessors[payable(msg.sender)].assessorName, "")) {
-            assessorVar = assessor(_assessorName, _assessorCategory, _assessorAddress);
-            assessors[_assessorAddress] = assessorVar;
-            ++numberOfAssessors;
-            return "Assessor created";
-        } else {
-            return "The assessor with this address already exists!";
-        }
+    function createTask(string calldata _description, uint16 _freelancerReward, uint16 _assessorReward, string calldata _category) public returns (string memory) {
+        taskVar = task(_description, _freelancerReward, _assessorReward, _category, msg.sender, TaskState.Financing);
+        tasks[numberOfTasks++] = taskVar;
+        return "[Marketplace] Task created";
     }
-
-    function getNumberOfAssessors() public view returns (uint16) {
-        return numberOfAssessors;
-    }
-
-    function createContributor(string calldata _contributorName, uint16 _numberOfTokens, address payable _contributorAddress) public returns (string memory) {
-        require(state == State.Financing);
-        if (compareStrings(contributors[payable(msg.sender)].contributorName, "")) {
-            contributorVar = contributor(_contributorName, _numberOfTokens, _contributorAddress);
-            contributors[_contributorAddress] = contributorVar;
-            ++numberOfContributors;
-            return "Contributor created";
-        } else {
-            return "The contributor with this address already exists!";
-        }
-    }
-
-    function getNumberOfContributors() public view returns (uint16) {
-        return numberOfContributors;
-    }
-
-}
-
-contract Manager {
-
-}
-
-contract Task {
-
-}
-
-contract Freelancer {
-
-}
-
-//Evaluator
-contract Assessor {
-
-}
-
-//Finantator
-contract Contributor {
-
 }
