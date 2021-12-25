@@ -9,19 +9,25 @@ contract Marketplace is Ownable {
 
     manager private managerVar;
     mapping (address => manager) private managers;
+    manager[] private managersList;
+    address[] private managerAddresses;
 
     freelancer private freelancerVar;
     mapping (address => freelancer) private freelancers;
+    freelancer[] private freelancersList;
 
     assessor private assessorVar;
     mapping (address => assessor) private assessors;
+    assessor[] private assessorsList;
 
     contributor private contributorVar;
     mapping (address => contributor) private contributors;
+    contributor[] private contributorsList;
 
     task private taskVar;
     uint16 private numberOfTasks;
     mapping (uint16 => task) private tasks;
+    task[] private tasksList;
 
     struct manager {
         string name;
@@ -64,39 +70,73 @@ contract Marketplace is Ownable {
         TaskState state;
     }
 
+    modifier onlyManager() {
+        require(IsManagerAddress(msg.sender), "[Marketplace] Only a manager can create a task!");
+        _;
+    }
+
     constructor() {}
 
-    function compareStrings(string memory str1, string memory str2) pure private returns (bool) {
+    function compareStrings(string memory str1, string memory str2) private pure returns (bool) {
         return (keccak256(abi.encodePacked((str1))) == keccak256(abi.encodePacked((str2))));
+    }
+
+    function IsManagerAddress(address _address) private view returns (bool) {
+        uint256 numberOfManagers = managerAddresses.length;
+        for (uint256 i = 0; i < numberOfManagers; ++i) {
+            if(managerAddresses[i] == _address) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function createManager(string calldata _name) public returns (string memory) {
         managerVar = manager(_name);
         managers[msg.sender] = managerVar;
+        managersList.push(managerVar);
+        managerAddresses.push(msg.sender);
         return "[Marketplace] Manager created";
     }
 
     function createFreelancer(string calldata _name, string calldata _category) public returns (string memory) {
         freelancerVar = freelancer(_name, _category, DEFAULT_REPUTATION);
         freelancers[msg.sender] = freelancerVar;
+        freelancersList.push(freelancerVar);
         return "[Marketplace] Freelancer created";
+    }
+
+    function getFreelancers() public view returns(freelancer[] memory) {
+        return freelancersList;
     }
 
     function createAssessor(string calldata _name, string calldata _category) public returns (string memory) {
         assessorVar = assessor(_name, _category);
         assessors[msg.sender] = assessorVar;
+        assessorsList.push(assessorVar);
         return "[Marketplace] Assessor created";
+    }
+
+    function getAssessors() public view returns(assessor[] memory) {
+        return assessorsList;
     }
 
     function createContributor(string calldata _name, uint16 _numberOfTokens) public returns (string memory) {
         contributorVar = contributor(_name, _numberOfTokens);
         contributors[msg.sender] = contributorVar;
+        contributorsList.push(contributorVar);
         return "[Marketplace] Contributor created";
     }
 
-    function createTask(string calldata _description, uint16 _freelancerReward, uint16 _assessorReward, string calldata _category) public returns (string memory) {
+    function createTask(string calldata _description, uint16 _freelancerReward, uint16 _assessorReward, string calldata _category) public onlyManager returns (string memory) {
         taskVar = task(_description, _freelancerReward, _assessorReward, _category, msg.sender, TaskState.Financing);
-        tasks[numberOfTasks++] = taskVar;
+        numberOfTasks++;
+        tasks[numberOfTasks] = taskVar;
+        tasksList.push(taskVar);
         return "[Marketplace] Task created";
+    }
+
+    function getTasks() public view returns(task[] memory) {
+        return tasksList;
     }
 }
