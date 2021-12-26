@@ -15,8 +15,10 @@ contract Marketplace {
     freelancer[] private freelancersList;
 
     assessor private assessorVar;
+    uint256 private numberOfAssessors;
     mapping (address => assessor) private assessors;
     assessor[] private assessorsList;
+    address[] private assessorAddresses;
 
     contributor private contributorVar;
     mapping (address => contributor) private contributors;
@@ -42,6 +44,7 @@ contract Marketplace {
     }
 
     struct assessor {
+        uint256 id;
         string name;
         string category;
     }
@@ -69,6 +72,7 @@ contract Marketplace {
         uint256 assessorReward;
         string category;
         address managerAddress;
+        address assessorAddress;
         uint256 currentFunds;
         TaskState state;
     }
@@ -134,9 +138,11 @@ contract Marketplace {
     }
 
     function createAssessor(string calldata _name, string calldata _category) public returns (string memory) {
-        assessorVar = assessor(_name, _category);
+        assessorVar = assessor(numberOfAssessors, _name, _category);
         assessors[msg.sender] = assessorVar;
         assessorsList.push(assessorVar);
+        numberOfAssessors++;
+        assessorAddresses.push(msg.sender);
         return "[Marketplace] Assessor created";
     }
 
@@ -153,7 +159,7 @@ contract Marketplace {
     }
 
     function createTask(string calldata _description, uint256 _freelancerReward, uint256 _assessorReward, string calldata _category) public onlyManager returns (string memory) {
-        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, 0, TaskState.Financing);
+        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), 0, TaskState.Financing);
         tasks[numberOfTasks] = taskVar;
         numberOfTasks++;
         tasksList.push(taskVar);
@@ -200,6 +206,46 @@ contract Marketplace {
             }
         }
         return financingTasksList;
+    }
+
+    function getFinancedTasks() public view returns(task[] memory) {
+        uint256 resultCount;
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Financed) {
+                resultCount++; 
+            }
+        }
+
+        task[] memory financedTasksList = new task[](resultCount);
+        uint256 newIndex;
+
+        for (uint i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Financed) {
+                financedTasksList[newIndex] = tasksList[i];
+                newIndex++;
+            }
+        }
+        return financedTasksList;
+    }
+
+    function getReadyTasks() public view returns(task[] memory) {
+        uint256 resultCount;
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Ready) {
+                resultCount++; 
+            }
+        }
+
+        task[] memory readyTasksList = new task[](resultCount);
+        uint256 newIndex;
+
+        for (uint i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Ready) {
+                readyTasksList[newIndex] = tasksList[i];
+                newIndex++;
+            }
+        }
+        return readyTasksList;
     }
 
     function getContributorContributionIndexForTask(address _contributorAddress, uint256 _taskId) private view returns(int256) {
@@ -274,6 +320,28 @@ contract Marketplace {
                     return "Your contribution has been withdrawn.";
                 }
                 return "The task must be in Financing state."; 
+            }
+        }
+        return "The task was not found.";
+    }
+
+    function assignAssessorForTask(uint256 _assessorId, uint256 _taskId) public onlyManager returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if(tasksList[i].id == _taskId) {
+                if (tasksList[i].state == TaskState.Financed) {
+                    for (uint256 j = 0; j < numberOfAssessors; ++j) {
+                        if(assessorsList[j].id == _assessorId) {
+                            if(compareStrings(tasksList[i].category, assessorsList[j].category)) {
+                                tasksList[i].assessorAddress = assessorAddresses[_assessorId];
+                                tasksList[i].state = TaskState.Ready;
+                                return "The assessor was assigned for the task!";
+                            }
+                            return "The category of the task must be the same as that of the assessor";
+                        }
+                    }
+                    return "The assessor was not found.";
+                }
+                return "The task must be in Financed state."; 
             }
         }
         return "The task was not found.";
