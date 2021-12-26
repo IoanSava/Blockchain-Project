@@ -97,7 +97,7 @@ contract Marketplace {
     function IsManagerAddress(address _address) private view returns (bool) {
         uint256 numberOfManagers = managerAddresses.length;
         for (uint256 i = 0; i < numberOfManagers; ++i) {
-            if (managerAddresses[i] == _address) {
+            if(managerAddresses[i] == _address) {
                 return true;
             }
         }
@@ -107,7 +107,7 @@ contract Marketplace {
     function IsContributorAddress(address _address) private view returns (bool) {
         uint256 numberOfContributors = contributorAddresses.length;
         for (uint256 i = 0; i < numberOfContributors; ++i) {
-            if (contributorAddresses[i] == _address) {
+            if(contributorAddresses[i] == _address) {
                 return true;
             }
         }
@@ -164,11 +164,11 @@ contract Marketplace {
         return tasksList;
     }
 
-    function cancelTask(uint256 _taskId) public onlyManager returns (string memory) {
+    function cancelTask (uint256 _taskId) public onlyManager returns (string memory) {
         for (uint256 i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].id == _taskId) {
+            if(tasksList[i].id == _taskId) {
                 if (tasksList[i].state == TaskState.Financing) {
-                    if (tasksList[i].managerAddress == msg.sender) {
+                    if(tasksList[i].managerAddress == msg.sender) {
                         tasksList[i].state = TaskState.Canceled;
                         // TODO: De returnat contributiile finantatorilor
 
@@ -221,18 +221,57 @@ contract Marketplace {
         require(msg.value > 0, "Invalid amount of ETH");
         
         for (uint256 i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].id == _taskId) {
+            if(tasksList[i].id == _taskId) {
                 if (tasksList[i].state == TaskState.Financing) {
                     int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
                     if (contributorContributionIndex == -1) {
+                        // The contributor has not contributed to this task, it creates a new contribution
                         createContributorContribution(msg.sender, msg.value, _taskId);
                     }
                     else {
+                        // The contributor has already contributed to this task, it adds the funds to the previous contribution
                         tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution += msg.value;
                     }
 
                     tasksList[i].currentFunds += msg.value;
+
+                    uint256 fundingGoal = tasksList[i].freelancerReward + tasksList[i].assessorReward;
+                    if (tasksList[i].currentFunds == fundingGoal) {
+                        tasksList[i].state = TaskState.Financed;
+                    }
                     return "We received your contribution.";
+                }
+                return "The task must be in Financing state."; 
+            }
+        }
+        return "The task was not found.";
+    }
+
+    function withdrawFunds(uint256 _taskId) public payable onlyContributor returns (string memory) {
+        require(msg.value > 0, "Invalid amount of ETH");
+        uint256 fundsToWithdraw = msg.value;
+        
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if(tasksList[i].id == _taskId) {
+                if (tasksList[i].state == TaskState.Financing) {
+                    int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
+                    if (contributorContributionIndex == -1) {
+                        // The contributor has not contributed to this task
+                        return "You have not contributed to this task.";
+                    }
+                    else {
+                        // The contributor has contributed to this task, he can withdraw only his funds
+                        // Check if msg.value is greater than his contribution to this task
+                        uint256 previousTaskContribution = tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution;
+                        if (previousTaskContribution < msg.value) {
+                            fundsToWithdraw = previousTaskContribution;
+                        }
+                        tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution -= fundsToWithdraw;
+                    }
+
+                    tasksList[i].currentFunds -= fundsToWithdraw;
+
+                    return "Your contribution has been withdrawn.";
                 }
                 return "The task must be in Financing state."; 
             }
