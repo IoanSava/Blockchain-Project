@@ -21,8 +21,10 @@ contract Marketplace {
     freelancer[] private freelancersList;
 
     assessor private assessorVar;
+    uint256 private numberOfAssessors;
     mapping (address => assessor) private assessors;
     assessor[] private assessorsList;
+    address[] private assessorAddresses;
 
     contributor private contributorVar;
     mapping (address => contributor) private contributors;
@@ -48,6 +50,7 @@ contract Marketplace {
     }
 
     struct assessor {
+        uint256 id;
         string name;
         string category;
     }
@@ -75,6 +78,7 @@ contract Marketplace {
         uint256 assessorReward; // number of tokens
         string category;
         address managerAddress;
+        address assessorAddress;
         uint256 currentFunds; // number of tokens
         TaskState state;
     }
@@ -97,7 +101,9 @@ contract Marketplace {
     constructor(
         address _managerAddress,
         address _firstContributorAddress,
-        address _secondContributorAddress
+        address _secondContributorAddress,
+        address _firstAssessorAddress,
+        address _secondAssessorAddress
     ) {
         token = new Token(TOKENS_INITIAL_SUPPLY);
         emit TokenCreated(address(token));
@@ -109,6 +115,9 @@ contract Marketplace {
 
         createContributor("Mike", _secondContributorAddress);
         token.transfer(_secondContributorAddress, TOKENS_INITIAL_SUPPLY / 2);
+
+        createAssessor("Roger", "web", _firstAssessorAddress);
+        createAssessor("Joe", "mobile", _secondAssessorAddress);
     }
 
     function compareStrings(string memory str1, string memory str2) private pure returns (bool) {
@@ -155,9 +164,11 @@ contract Marketplace {
     }
 
     function createAssessor(string memory _name, string memory _category, address _address) private returns (string memory) {
-        assessorVar = assessor(_name, _category);
+        assessorVar = assessor(numberOfAssessors, _name, _category);
         assessors[_address] = assessorVar;
         assessorsList.push(assessorVar);
+        numberOfAssessors++;
+        assessorAddresses.push(_address);
         return "[Marketplace] Assessor created";
     }
 
@@ -174,7 +185,7 @@ contract Marketplace {
     }
 
     function createTask(string calldata _description, uint256 _freelancerReward, uint256 _assessorReward, string calldata _category) public onlyManager returns (string memory) {
-        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, 0, TaskState.Financing);
+        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), 0, TaskState.Financing);
         tasks[numberOfTasks] = taskVar;
         numberOfTasks++;
         tasksList.push(taskVar);
@@ -234,6 +245,46 @@ contract Marketplace {
         return financingTasksList;
     }
 
+    function getFinancedTasks() public view returns(task[] memory) {
+        uint256 resultCount;
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Financed) {
+                resultCount++; 
+            }
+        }
+
+        task[] memory financedTasksList = new task[](resultCount);
+        uint256 newIndex;
+
+        for (uint i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Financed) {
+                financedTasksList[newIndex] = tasksList[i];
+                newIndex++;
+            }
+        }
+        return financedTasksList;
+    }
+
+    function getReadyTasks() public view returns(task[] memory) {
+        uint256 resultCount;
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Ready) {
+                resultCount++; 
+            }
+        }
+
+        task[] memory readyTasksList = new task[](resultCount);
+        uint256 newIndex;
+
+        for (uint i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].state == TaskState.Ready) {
+                readyTasksList[newIndex] = tasksList[i];
+                newIndex++;
+            }
+        }
+        return readyTasksList;
+    }
+
     function getContributorContributionIndexForTask(address _contributorAddress, uint256 _taskId) private view returns(int256) {
         uint256 numberOfContributions = tasksContributions[_taskId].length;
         for (uint256 i = 0; i < numberOfContributions; ++i) {
@@ -249,33 +300,92 @@ contract Marketplace {
         tasksContributions[_taskId].push(contributorContributionVar);
     }
 
-    function financeTask(uint256 _taskId, uint256 tokenAmount) external onlyContributor returns (string memory) {
-        require(tokenAmount > 0, "[Marketplace] Invalid amount of tokens");
+    function financeTask(uint256 _taskId, uint256 _tokenAmount) external onlyContributor returns (string memory) {
+        require(_tokenAmount > 0, "[Marketplace] Invalid amount of tokens");
         uint256 tokenBalance = token.balanceOf(msg.sender);
-        require(tokenBalance >= tokenAmount, "[Marketplace] You don't have enough tokens");
+        require(tokenBalance >= _tokenAmount, "[Marketplace] You don't have enough tokens");
         
         for (uint256 i = 0; i < numberOfTasks; ++i) {
             if (tasksList[i].id == _taskId) {
                 require(tasksList[i].state == TaskState.Financing, "[Marketplace] The task must be in Financing state.");
                 
-                bool sent = token.transferFrom(msg.sender, address(this), tokenAmount);
+                bool sent = token.transferFrom(msg.sender, address(this), _tokenAmount);
                 require(sent, "[Marketplace] Failed to transfer tokens to marketplace");
 
                 int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
                 if (contributorContributionIndex == -1) {
-                    createContributorContribution(msg.sender, tokenAmount, _taskId);
+                    // The contributor has not contributed to this task, it creates a new contribution
+                    createContributorContribution(msg.sender, _tokenAmount, _taskId);
                 }
                 else {
-                    tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution += tokenAmount;
+                    // The contributor has already contributed to this task, it adds the funds to the previous contribution
+                    tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution += _tokenAmount;
                 }
 
-                tasksList[i].currentFunds += tokenAmount;
+                tasksList[i].currentFunds += _tokenAmount;
                 uint256 fundingGoal = tasksList[i].freelancerReward + tasksList[i].assessorReward;
                 if (tasksList[i].currentFunds >= fundingGoal) {
                     tasksList[i].state = TaskState.Financed;
+
+                    // check if the investment has been exceeded
+                    uint256 surplus = tasksList[i].currentFunds - fundingGoal;
+                    if (surplus > 0) {
+                        token.transfer(msg.sender, surplus);
+                        tasksList[i].currentFunds -= surplus;
+                        tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution -= surplus;
+                    }
                 }
 
                 return "[Marketplace] We received your contribution.";
+            }
+        }
+        return "[Marketplace] The task was not found.";
+    }
+
+    function withdrawFunds(uint256 _taskId, uint256 _tokenAmount) external onlyContributor returns (string memory) {
+        require(_tokenAmount > 0, "[Marketplace] Invalid amount of tokens");
+
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].state == TaskState.Financing, "[Marketplace] The task must be in Financing state.");
+
+                int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
+                if (contributorContributionIndex == -1) {
+                    // The contributor has not contributed to this task
+                    return "[Marketplace] You have not contributed to this task.";
+                }
+
+                uint256 currentTaskContribution = tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution;
+                if (currentTaskContribution < _tokenAmount) {
+                    return "[Marketplace] Your contribution is lower.";
+                }
+
+                token.transfer(msg.sender, _tokenAmount);
+                tasksList[i].currentFunds -= _tokenAmount;
+                tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution -= _tokenAmount;
+
+                return "[Marketplace] Withdrawal succeeded.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function assignAssessorForTask(uint256 _assessorId, uint256 _taskId) public onlyManager returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].state == TaskState.Financed, "[Marketplace] The task must be in Financed state.");
+                require(tasksList[i].managerAddress == msg.sender, "[Marketplace] You can not assign an assessor for the task of another manager.");
+                
+                for (uint256 j = 0; j < numberOfAssessors; ++j) {
+                    if (assessorsList[j].id == _assessorId) {
+                        require(compareStrings(tasksList[i].category, assessorsList[j].category), "[Marketplace] The category of the task must be the same as that of the assessor.");
+                        tasksList[i].assessorAddress = assessorAddresses[_assessorId];
+                        tasksList[i].state = TaskState.Ready;
+                        return "[Marketplace] The assessor was assigned for the task.";
+                    }
+                }
+                return "[Marketplace] The assessor was not found.";
             }
         }
         return "[Marketplace] The task was not found.";
