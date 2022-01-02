@@ -13,31 +13,29 @@ contract Marketplace {
 
     manager private managerVar;
     mapping (address => manager) private managers;
-    manager[] private managersList;
-    address[] private managerAddresses;
+    mapping (address => bool) private managerAddresses;
 
     freelancer private freelancerVar;
     mapping (address => freelancer) private freelancers;
-    freelancer[] private freelancersList;
+    mapping (address => bool) private freelancerAddresses;
 
     assessor private assessorVar;
-    uint256 private numberOfAssessors;
     mapping (address => assessor) private assessors;
+    mapping (address => bool) assessorAddresses;
     assessor[] private assessorsList;
-    address[] private assessorAddresses;
 
     contributor private contributorVar;
     mapping (address => contributor) private contributors;
-    contributor[] private contributorsList;
-    address[] private contributorAddresses;
+    mapping (address => bool) contributorAddresses;
 
     task private taskVar;
     uint256 private numberOfTasks;
-    mapping (uint256 => task) private tasks;
     task[] private tasksList;
 
     contributorContribution private contributorContributionVar;
     mapping(uint256 => contributorContribution[]) tasksContributions;
+
+    mapping(uint256 => address[]) tasksFreelancers;
     
     struct manager {
         string name;
@@ -50,9 +48,9 @@ contract Marketplace {
     }
 
     struct assessor {
-        uint256 id;
         string name;
         string category;
+        address assessorAddress;
     }
 
     struct contributor {
@@ -89,12 +87,17 @@ contract Marketplace {
     }
 
     modifier onlyManager() {
-        require(IsManagerAddress(msg.sender), "[Marketplace] You are not a manager!");
+        require(managerAddresses[msg.sender], "[Marketplace] You are not a manager!");
         _;
     }
 
     modifier onlyContributor() {
-        require(IsContributorAddress(msg.sender), "[Marketplace] You are not a contributor!");
+        require(contributorAddresses[msg.sender], "[Marketplace] You are not a contributor!");
+        _;
+    }
+
+    modifier onlyFreelancer() {
+        require(freelancerAddresses[msg.sender], "[Marketplace] You are not a freelancer!");
         _;
     }
 
@@ -103,7 +106,9 @@ contract Marketplace {
         address _firstContributorAddress,
         address _secondContributorAddress,
         address _firstAssessorAddress,
-        address _secondAssessorAddress
+        address _secondAssessorAddress,
+        address _firstFreelancerAddress,
+        address _secondFreelancerAddress
     ) {
         token = new Token(TOKENS_INITIAL_SUPPLY);
         emit TokenCreated(address(token));
@@ -111,64 +116,44 @@ contract Marketplace {
         createManager("George", _managerAddress);
 
         createContributor("John", _firstContributorAddress);
-        token.transfer(_firstContributorAddress, TOKENS_INITIAL_SUPPLY / 2);
+        token.transfer(_firstContributorAddress, TOKENS_INITIAL_SUPPLY / 4);
 
         createContributor("Mike", _secondContributorAddress);
-        token.transfer(_secondContributorAddress, TOKENS_INITIAL_SUPPLY / 2);
+        token.transfer(_secondContributorAddress, TOKENS_INITIAL_SUPPLY / 4);
 
-        createAssessor("Roger", "web", _firstAssessorAddress);
+        createAssessor("Rihanna", "web", _firstAssessorAddress);
         createAssessor("Joe", "mobile", _secondAssessorAddress);
+
+        createFreelancer("Andres", "web", _firstFreelancerAddress);
+        token.transfer(_firstFreelancerAddress, TOKENS_INITIAL_SUPPLY / 4);
+
+        createFreelancer("Kamila", "mobile", _secondFreelancerAddress);
+        token.transfer(_secondFreelancerAddress, TOKENS_INITIAL_SUPPLY / 4);
     }
 
     function compareStrings(string memory str1, string memory str2) private pure returns (bool) {
         return (keccak256(abi.encodePacked((str1))) == keccak256(abi.encodePacked((str2))));
     }
 
-    function IsManagerAddress(address _address) private view returns (bool) {
-        uint256 numberOfManagers = managerAddresses.length;
-        for (uint256 i = 0; i < numberOfManagers; ++i) {
-            if (managerAddresses[i] == _address) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function IsContributorAddress(address _address) private view returns (bool) {
-        uint256 numberOfContributors = contributorAddresses.length;
-        for (uint256 i = 0; i < numberOfContributors; ++i) {
-            if (contributorAddresses[i] == _address) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     function createManager(string memory _name, address _address) private returns (string memory) {
         managerVar = manager(_name);
         managers[_address] = managerVar;
-        managersList.push(managerVar);
-        managerAddresses.push(_address);
+        managerAddresses[_address] = true;
         return "[Marketplace] Manager created";
     }
 
     function createFreelancer(string memory _name, string memory _category, address _address) private returns (string memory) {
         freelancerVar = freelancer(_name, _category, DEFAULT_REPUTATION);
         freelancers[_address] = freelancerVar;
-        freelancersList.push(freelancerVar);
+        freelancerAddresses[_address] = true;
         return "[Marketplace] Freelancer created";
     }
 
-    function getFreelancers() public view returns(freelancer[] memory) {
-        return freelancersList;
-    }
-
     function createAssessor(string memory _name, string memory _category, address _address) private returns (string memory) {
-        assessorVar = assessor(numberOfAssessors, _name, _category);
+        assessorVar = assessor(_name, _category, _address);
         assessors[_address] = assessorVar;
         assessorsList.push(assessorVar);
-        numberOfAssessors++;
-        assessorAddresses.push(_address);
+        assessorAddresses[_address] = true;
         return "[Marketplace] Assessor created";
     }
 
@@ -179,15 +164,13 @@ contract Marketplace {
     function createContributor(string memory _name, address _address) private returns (string memory) {
         contributorVar = contributor(_name);
         contributors[_address] = contributorVar;
-        contributorsList.push(contributorVar);
-        contributorAddresses.push(_address);
+        contributorAddresses[_address] = true;
         return "[Marketplace] Contributor created";
     }
 
     function createTask(string calldata _description, uint256 _freelancerReward, uint256 _assessorReward, string calldata _category) public onlyManager returns (string memory) {
-        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), 0, TaskState.Financing);
-        tasks[numberOfTasks] = taskVar;
         numberOfTasks++;
+        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), 0, TaskState.Financing);
         tasksList.push(taskVar);
         return "[Marketplace] Task created";
     }
@@ -225,64 +208,36 @@ contract Marketplace {
         return "[Marketplace] The task was not found.";   
     }
 
-    function getFinancingTasks() public view returns(task[] memory) {
+    function getTasksByState(TaskState _state) private view returns(task[] memory) {
         uint256 resultCount;
         for (uint256 i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Financing) {
+            if (tasksList[i].state == _state) {
                 resultCount++; 
             }
         }
 
-        task[] memory financingTasksList = new task[](resultCount);
+        task[] memory tasks = new task[](resultCount);
         uint256 newIndex;
 
         for (uint i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Financing) {
-                financingTasksList[newIndex] = tasksList[i];
+            if (tasksList[i].state == _state) {
+                tasks[newIndex] = tasksList[i];
                 newIndex++;
             }
         }
-        return financingTasksList;
+        return tasks;
+    }
+
+    function getFinancingTasks() public view returns(task[] memory) {
+        return getTasksByState(TaskState.Financing);
     }
 
     function getFinancedTasks() public view returns(task[] memory) {
-        uint256 resultCount;
-        for (uint256 i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Financed) {
-                resultCount++; 
-            }
-        }
-
-        task[] memory financedTasksList = new task[](resultCount);
-        uint256 newIndex;
-
-        for (uint i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Financed) {
-                financedTasksList[newIndex] = tasksList[i];
-                newIndex++;
-            }
-        }
-        return financedTasksList;
+        return getTasksByState(TaskState.Financed);
     }
 
     function getReadyTasks() public view returns(task[] memory) {
-        uint256 resultCount;
-        for (uint256 i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Ready) {
-                resultCount++; 
-            }
-        }
-
-        task[] memory readyTasksList = new task[](resultCount);
-        uint256 newIndex;
-
-        for (uint i = 0; i < numberOfTasks; ++i) {
-            if (tasksList[i].state == TaskState.Ready) {
-                readyTasksList[newIndex] = tasksList[i];
-                newIndex++;
-            }
-        }
-        return readyTasksList;
+        return getTasksByState(TaskState.Ready);
     }
 
     function getContributorContributionIndexForTask(address _contributorAddress, uint256 _taskId) private view returns(int256) {
@@ -371,23 +326,51 @@ contract Marketplace {
         return "[Marketplace] The task was not found.";
     }
 
-    function assignAssessorForTask(uint256 _assessorId, uint256 _taskId) public onlyManager returns (string memory) {
+    function assignAssessorForTask(address _assessorAddress, uint256 _taskId) public onlyManager returns (string memory) {
+        require(assessorAddresses[_assessorAddress], "[Marketplace] The assessor was not found.");
+
         for (uint256 i = 0; i < numberOfTasks; ++i) {
             if (tasksList[i].id == _taskId) {
                 require(tasksList[i].state == TaskState.Financed, "[Marketplace] The task must be in Financed state.");
                 require(tasksList[i].managerAddress == msg.sender, "[Marketplace] You can not assign an assessor for the task of another manager.");
-                
-                for (uint256 j = 0; j < numberOfAssessors; ++j) {
-                    if (assessorsList[j].id == _assessorId) {
-                        require(compareStrings(tasksList[i].category, assessorsList[j].category), "[Marketplace] The category of the task must be the same as that of the assessor.");
-                        tasksList[i].assessorAddress = assessorAddresses[_assessorId];
-                        tasksList[i].state = TaskState.Ready;
-                        return "[Marketplace] The assessor was assigned for the task.";
-                    }
-                }
-                return "[Marketplace] The assessor was not found.";
+                require(compareStrings(tasksList[i].category, assessors[_assessorAddress].category), "[Marketplace] The category of the task must be the same as that of the assessor.");
+
+                tasksList[i].assessorAddress = _assessorAddress;
+                tasksList[i].state = TaskState.Ready;
+                return "[Marketplace] The assessor was assigned for the task.";
             }
         }
         return "[Marketplace] The task was not found.";
+    }
+
+    function doesFreelancerAlreadyAppliedForTask(address _freelancerAddress, uint256 _taskId) private view returns (bool) {
+        uint256 numberOfApplications = tasksFreelancers[_taskId].length;
+        for (uint256 i = 0; i < numberOfApplications; ++i) {
+            if (tasksFreelancers[_taskId][i] == _freelancerAddress) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function applyForTask(uint256 _taskId) external onlyFreelancer returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].state == TaskState.Ready, "[Marketplace] The task must be in Ready state.");
+                require(compareStrings(tasksList[i].category, freelancers[msg.sender].category), "[Marketplace] The category of the task must be the same as that of the freelancer.");
+                require(!doesFreelancerAlreadyAppliedForTask(msg.sender, _taskId), "[Marketplace] You already applied for this task");
+            
+                tasksFreelancers[_taskId].push(msg.sender);
+                bool sent = token.transferFrom(msg.sender, address(this), tasksList[i].assessorReward);
+                require(sent, "[Marketplace] Failed to transfer tokens to marketplace");
+
+                return "[Marketplace] We received your application.";
+            }
+        }
+        return "[Marketplace] The task was not found.";
+    }
+
+    function getApplicationsForTask(uint256 _taskId) public view returns(address[] memory) {
+        return tasksFreelancers[_taskId];
     }
 }
