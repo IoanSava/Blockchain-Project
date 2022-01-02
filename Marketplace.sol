@@ -7,6 +7,8 @@ import "./Token.sol";
 contract Marketplace {
     uint256 private DEFAULT_REPUTATION = 5;
     uint256 private TOKENS_INITIAL_SUPPLY = 1000;
+    uint256 private MIN_REPUTATION = 1;
+    uint256 private MAX_REPUTATION = 10;
 
     Token private token;
     event TokenCreated(address tokenAddress);
@@ -77,6 +79,7 @@ contract Marketplace {
         string category;
         address managerAddress;
         address assessorAddress;
+        address freelancerAddress;
         uint256 currentFunds; // number of tokens
         TaskState state;
     }
@@ -98,6 +101,11 @@ contract Marketplace {
 
     modifier onlyFreelancer() {
         require(freelancerAddresses[msg.sender], "[Marketplace] You are not a freelancer!");
+        _;
+    }
+
+    modifier onlyAssessor() {
+        require(assessorAddresses[msg.sender], "[Marketplace] You are not an assessor!");
         _;
     }
 
@@ -170,7 +178,7 @@ contract Marketplace {
 
     function createTask(string calldata _description, uint256 _freelancerReward, uint256 _assessorReward, string calldata _category) public onlyManager returns (string memory) {
         numberOfTasks++;
-        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), 0, TaskState.Financing);
+        taskVar = task(numberOfTasks, _description, _freelancerReward, _assessorReward, _category, msg.sender, address(0), address(0), 0, TaskState.Financing);
         tasksList.push(taskVar);
         return "[Marketplace] Task created";
     }
@@ -238,6 +246,18 @@ contract Marketplace {
 
     function getReadyTasks() public view returns(task[] memory) {
         return getTasksByState(TaskState.Ready);
+    }
+
+    function getWorkInProgressTasks() public view returns(task[] memory) {
+        return getTasksByState(TaskState.WorkInProgress);
+    }
+
+    function getDoneTasks() public view returns(task[] memory) {
+        return getTasksByState(TaskState.Done);
+    }
+
+    function getNeedsArbitrationTasks() public view returns(task[] memory) {
+        return getTasksByState(TaskState.NeedsArbitration);
     }
 
     function getContributorContributionIndexForTask(address _contributorAddress, uint256 _taskId) private view returns(int256) {
@@ -343,7 +363,7 @@ contract Marketplace {
         return "[Marketplace] The task was not found.";
     }
 
-    function doesFreelancerAlreadyAppliedForTask(address _freelancerAddress, uint256 _taskId) private view returns (bool) {
+    function doesFreelancerAppliedForTask(address _freelancerAddress, uint256 _taskId) private view returns (bool) {
         uint256 numberOfApplications = tasksFreelancers[_taskId].length;
         for (uint256 i = 0; i < numberOfApplications; ++i) {
             if (tasksFreelancers[_taskId][i] == _freelancerAddress) {
@@ -358,7 +378,7 @@ contract Marketplace {
             if (tasksList[i].id == _taskId) {
                 require(tasksList[i].state == TaskState.Ready, "[Marketplace] The task must be in Ready state.");
                 require(compareStrings(tasksList[i].category, freelancers[msg.sender].category), "[Marketplace] The category of the task must be the same as that of the freelancer.");
-                require(!doesFreelancerAlreadyAppliedForTask(msg.sender, _taskId), "[Marketplace] You already applied for this task");
+                require(!doesFreelancerAppliedForTask(msg.sender, _taskId), "[Marketplace] You already applied for this task.");
             
                 tasksFreelancers[_taskId].push(msg.sender);
                 bool sent = token.transferFrom(msg.sender, address(this), tasksList[i].assessorReward);
@@ -372,5 +392,148 @@ contract Marketplace {
 
     function getApplicationsForTask(uint256 _taskId) public view returns(address[] memory) {
         return tasksFreelancers[_taskId];
+    }
+
+    function selectFreelancerForTask(address _freelancerAddress, uint256 _taskId) public onlyManager returns (string memory) {
+        require(freelancerAddresses[_freelancerAddress], "[Marketplace] The freelancer was not found.");
+        require(doesFreelancerAppliedForTask(_freelancerAddress, _taskId), "[Marketplace] The freelancer did not apply for the task.");
+
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].state == TaskState.Ready, "[Marketplace] The task must be in Ready state.");
+
+                tasksList[i].state = TaskState.WorkInProgress;
+                tasksList[i].freelancerAddress = _freelancerAddress;
+
+                uint256 numberOfApplications = tasksFreelancers[_taskId].length;
+                for (uint256 j = 0; j < numberOfApplications; ++j) {
+                    if (tasksFreelancers[_taskId][j] != _freelancerAddress) {
+                        token.transfer(tasksFreelancers[_taskId][j],  tasksList[i].assessorReward);
+                    }
+                }
+
+                return "[Marketplace] Freelancer assgined.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function getTasksOfFreelancer() public view onlyFreelancer returns (task[] memory) {
+        uint256 resultCount;
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].freelancerAddress == msg.sender) {
+                resultCount++; 
+            }
+        }
+
+        task[] memory tasks = new task[](resultCount);
+        uint256 newIndex;
+
+        for (uint i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].freelancerAddress == msg.sender) {
+                tasks[newIndex] = tasksList[i];
+                newIndex++;
+            }
+        }
+
+        return tasks;
+    }
+
+    function markTaskAsDone(uint256 _taskId) public onlyFreelancer returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].state == TaskState.WorkInProgress, "[Marketplace] The task must be in WorkInProgress state.");
+                require(tasksList[i].freelancerAddress == msg.sender, "[Marketplace] This task is not yours.");
+
+                tasksList[i].state = TaskState.Done;
+                return "[Marketplace] The task was marked as done.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function acceptTaskByManager(uint256 _taskId) public onlyManager returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].managerAddress == msg.sender, "[Marketplace] This task is not yours.");
+                require(tasksList[i].state == TaskState.Done, "[Marketplace] The task must be in Done state.");
+
+                uint256 totalRewardForFreelancer = tasksList[i].currentFunds + tasksList[i].assessorReward;
+                token.transfer(tasksList[i].freelancerAddress, totalRewardForFreelancer);
+
+                if (freelancers[tasksList[i].freelancerAddress].reputation < MAX_REPUTATION) {
+                    freelancers[tasksList[i].freelancerAddress].reputation += 1;
+                }
+
+                tasksList[i].state = TaskState.Success;
+
+                return "[Marketplace] The task was accepted.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function declineTaskByManager(uint256 _taskId) public onlyManager returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].managerAddress == msg.sender, "[Marketplace] This task is not yours.");
+                require(tasksList[i].state == TaskState.Done, "[Marketplace] The task must be in Done state.");
+
+                tasksList[i].state = TaskState.NeedsArbitration;
+
+                return "[Marketplace] The task was declined.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function acceptTaskByAssessor(uint256 _taskId) public onlyAssessor returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].assessorAddress == msg.sender, "[Marketplace] This task is not yours.");
+                require(tasksList[i].state == TaskState.NeedsArbitration, "[Marketplace] The task must be in NeedsArbitration state.");
+
+                token.transfer(tasksList[i].freelancerAddress, tasksList[i].currentFunds);
+
+                if (freelancers[tasksList[i].freelancerAddress].reputation < MAX_REPUTATION) {
+                    freelancers[tasksList[i].freelancerAddress].reputation += 1;
+                }
+
+                token.transfer(msg.sender, tasksList[i].assessorReward);
+
+                tasksList[i].state = TaskState.Success;
+
+                return "[Marketplace] The task was accepted.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
+    }
+
+    function declineTaskByAssessor(uint256 _taskId) public onlyAssessor returns (string memory) {
+        for (uint256 i = 0; i < numberOfTasks; ++i) {
+            if (tasksList[i].id == _taskId) {
+                require(tasksList[i].assessorAddress == msg.sender, "[Marketplace] This task is not yours.");
+                require(tasksList[i].state == TaskState.NeedsArbitration, "[Marketplace] The task must be in NeedsArbitration state.");
+
+                returnContributionsForTask(_taskId);
+
+                if (freelancers[tasksList[i].freelancerAddress].reputation > MIN_REPUTATION) {
+                    freelancers[tasksList[i].freelancerAddress].reputation -= 1;
+                }
+
+                token.transfer(msg.sender, tasksList[i].assessorReward);
+
+                tasksList[i].state = TaskState.Failed;
+
+                return "[Marketplace] The task was declined.";
+            }
+        }
+
+        return "[Marketplace] The task was not found.";
     }
 }
