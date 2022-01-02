@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >= 0.8.0 <=0.8.7;
+pragma solidity >= 0.8.0 <= 0.8.7;
+
+import "./Token.sol";
 
 contract Marketplace {
-    uint256 DEFAULT_REPUTATION = 5;
+    uint256 private DEFAULT_REPUTATION = 5;
+    uint256 private TOKENS_INITIAL_SUPPLY = 1000;
+
+    Token private token;
+    event TokenCreated(address tokenAddress);
 
     manager private managerVar;
     mapping (address => manager) private managers;
@@ -65,17 +71,17 @@ contract Marketplace {
     struct task {
         uint256 id;
         string description;
-        uint256 freelancerReward;
-        uint256 assessorReward;
+        uint256 freelancerReward; // number of tokens
+        uint256 assessorReward; // number of tokens
         string category;
         address managerAddress;
-        uint256 currentFunds;
+        uint256 currentFunds; // number of tokens
         TaskState state;
     }
 
     struct contributorContribution {
         address contributorAddress;
-        uint256 contribution; 
+        uint256 contribution; // number of tokens
     }
 
     modifier onlyManager() {
@@ -88,7 +94,22 @@ contract Marketplace {
         _;
     }
 
-    constructor() {}
+    constructor(
+        address _managerAddress,
+        address _firstContributorAddress,
+        address _secondContributorAddress
+    ) {
+        token = new Token(TOKENS_INITIAL_SUPPLY);
+        emit TokenCreated(address(token));
+
+        createManager("George", _managerAddress);
+
+        createContributor("John", _firstContributorAddress);
+        token.transfer(_firstContributorAddress, TOKENS_INITIAL_SUPPLY / 2);
+
+        createContributor("Mike", _secondContributorAddress);
+        token.transfer(_secondContributorAddress, TOKENS_INITIAL_SUPPLY / 2);
+    }
 
     function compareStrings(string memory str1, string memory str2) private pure returns (bool) {
         return (keccak256(abi.encodePacked((str1))) == keccak256(abi.encodePacked((str2))));
@@ -114,17 +135,17 @@ contract Marketplace {
         return false;
     }
 
-    function createManager(string calldata _name) public returns (string memory) {
+    function createManager(string memory _name, address _address) private returns (string memory) {
         managerVar = manager(_name);
-        managers[msg.sender] = managerVar;
+        managers[_address] = managerVar;
         managersList.push(managerVar);
-        managerAddresses.push(msg.sender);
+        managerAddresses.push(_address);
         return "[Marketplace] Manager created";
     }
 
-    function createFreelancer(string calldata _name, string calldata _category) public returns (string memory) {
+    function createFreelancer(string memory _name, string memory _category, address _address) private returns (string memory) {
         freelancerVar = freelancer(_name, _category, DEFAULT_REPUTATION);
-        freelancers[msg.sender] = freelancerVar;
+        freelancers[_address] = freelancerVar;
         freelancersList.push(freelancerVar);
         return "[Marketplace] Freelancer created";
     }
@@ -133,9 +154,9 @@ contract Marketplace {
         return freelancersList;
     }
 
-    function createAssessor(string calldata _name, string calldata _category) public returns (string memory) {
+    function createAssessor(string memory _name, string memory _category, address _address) private returns (string memory) {
         assessorVar = assessor(_name, _category);
-        assessors[msg.sender] = assessorVar;
+        assessors[_address] = assessorVar;
         assessorsList.push(assessorVar);
         return "[Marketplace] Assessor created";
     }
@@ -144,11 +165,11 @@ contract Marketplace {
         return assessorsList;
     }
 
-    function createContributor(string calldata _name) public returns (string memory) {
+    function createContributor(string memory _name, address _address) private returns (string memory) {
         contributorVar = contributor(_name);
-        contributors[msg.sender] = contributorVar;
+        contributors[_address] = contributorVar;
         contributorsList.push(contributorVar);
-        contributorAddresses.push(msg.sender);
+        contributorAddresses.push(_address);
         return "[Marketplace] Contributor created";
     }
 
@@ -164,22 +185,33 @@ contract Marketplace {
         return tasksList;
     }
 
+    function getContributionsForTask(uint256 _taskId) public view returns(contributorContribution[] memory) {
+        return tasksContributions[_taskId];
+    }
+
+    function returnContributionsForTask(uint256 _taskId) private {
+        uint256 numberOfContributions = tasksContributions[_taskId].length;
+        for (uint256 i = 0; i < numberOfContributions; ++i) {
+            address contributorAddress = tasksContributions[_taskId][i].contributorAddress;
+            uint256 contribution = tasksContributions[_taskId][i].contribution;
+            token.transfer(contributorAddress, contribution);
+            tasksContributions[_taskId][i].contribution = 0;
+        }
+    }
+
     function cancelTask(uint256 _taskId) public onlyManager returns (string memory) {
         for (uint256 i = 0; i < numberOfTasks; ++i) {
             if (tasksList[i].id == _taskId) {
-                if (tasksList[i].state == TaskState.Financing) {
-                    if (tasksList[i].managerAddress == msg.sender) {
-                        tasksList[i].state = TaskState.Canceled;
-                        // TODO: De returnat contributiile finantatorilor
-
-                        return "The task was canceled.";
-                    }
-                    return "You can not cancel the task of another manager.";
-                }
-                return "The task must be in Financing state.";
+                require(tasksList[i].state == TaskState.Financing, "[Marketplace] The task must be in Financing state.");
+                require(tasksList[i].managerAddress == msg.sender, "[Marketplace] You can not cancel the task of another manager.");
+                
+                returnContributionsForTask(_taskId);
+                tasksList[i].state = TaskState.Canceled;
+                tasksList[i].currentFunds = 0;
+                return "[Marketplace] The task was canceled.";
             }
         }
-        return "The task was not found.";   
+        return "[Marketplace] The task was not found.";   
     }
 
     function getFinancingTasks() public view returns(task[] memory) {
@@ -212,31 +244,40 @@ contract Marketplace {
         return -1;
     }
 
-    function createContributorContribution(address _contributorAddress, uint256 _contributorValue, uint256 _taskId) private {
-        contributorContributionVar = contributorContribution(_contributorAddress, _contributorValue);
+    function createContributorContribution(address _contributorAddress, uint256 _contributionValue, uint256 _taskId) private {
+        contributorContributionVar = contributorContribution(_contributorAddress, _contributionValue);
         tasksContributions[_taskId].push(contributorContributionVar);
     }
 
-    function financeTask(uint256 _taskId) public payable onlyContributor returns (string memory) {
-        require(msg.value > 0, "Invalid amount of ETH");
+    function financeTask(uint256 _taskId, uint256 tokenAmount) external onlyContributor returns (string memory) {
+        require(tokenAmount > 0, "[Marketplace] Invalid amount of tokens");
+        uint256 tokenBalance = token.balanceOf(msg.sender);
+        require(tokenBalance >= tokenAmount, "[Marketplace] You don't have enough tokens");
         
         for (uint256 i = 0; i < numberOfTasks; ++i) {
             if (tasksList[i].id == _taskId) {
-                if (tasksList[i].state == TaskState.Financing) {
-                    int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
-                    if (contributorContributionIndex == -1) {
-                        createContributorContribution(msg.sender, msg.value, _taskId);
-                    }
-                    else {
-                        tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution += msg.value;
-                    }
+                require(tasksList[i].state == TaskState.Financing, "[Marketplace] The task must be in Financing state.");
+                
+                bool sent = token.transferFrom(msg.sender, address(this), tokenAmount);
+                require(sent, "[Marketplace] Failed to transfer tokens to marketplace");
 
-                    tasksList[i].currentFunds += msg.value;
-                    return "We received your contribution.";
+                int256 contributorContributionIndex = getContributorContributionIndexForTask(msg.sender, _taskId);
+                if (contributorContributionIndex == -1) {
+                    createContributorContribution(msg.sender, tokenAmount, _taskId);
                 }
-                return "The task must be in Financing state."; 
+                else {
+                    tasksContributions[_taskId][uint256(contributorContributionIndex)].contribution += tokenAmount;
+                }
+
+                tasksList[i].currentFunds += tokenAmount;
+                uint256 fundingGoal = tasksList[i].freelancerReward + tasksList[i].assessorReward;
+                if (tasksList[i].currentFunds >= fundingGoal) {
+                    tasksList[i].state = TaskState.Financed;
+                }
+
+                return "[Marketplace] We received your contribution.";
             }
         }
-        return "The task was not found.";
+        return "[Marketplace] The task was not found.";
     }
 }
