@@ -55,3 +55,11 @@ export async function getCurrentFunds(): Promise<number> {
 
   return await tokenContract.methods.balanceOf(selectedAccount).call();
 }
+
+export async function createNewTask(_description: string, _freelancerReward: number, _assessorReward: number, _category: string): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await tokenContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).call();
+}
