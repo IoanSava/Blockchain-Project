@@ -5,9 +5,7 @@ export default function CustomNavbar() {
   return (
     <Navbar collapseOnSelect expand="lg" bg="primary" variant="dark">
       <Container>
-        <Navbar.Brand href="/">
-          Freelancing marketplace
-        </Navbar.Brand>
+        <Navbar.Brand href="/">Freelancing marketplace</Navbar.Brand>
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
         <Navbar.Collapse id="responsive-navbar-nav">
           <Nav className="me-auto">
