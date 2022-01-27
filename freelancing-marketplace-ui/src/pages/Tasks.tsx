@@ -1,6 +1,5 @@
 import React from "react";
 import { Helmet } from "react-helmet";
-import "./css/Tasks.css";
 
 export default function Tasks() {
   const title = "Tasks";
