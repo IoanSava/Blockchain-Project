@@ -15,6 +15,7 @@ let marketplaceContract: Contract;
 
 let isMarketplaceInitialized: boolean = false;
 
+
 export async function init(): Promise<void> {
   let provider = (window as any).ethereum;
   if (typeof provider !== "undefined") {
@@ -62,13 +63,28 @@ export async function createNewTask(_description: string, _freelancerReward: num
     await init();
   }
 
-  return await marketplaceContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).send({gas: 999999999});
+  return await marketplaceContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).call({
+    from: selectedAccount,
+  });
 }
 
-export async function getTasks(): Promise<string> {
+export async function getTasks() {
   if (!isMarketplaceInitialized) {
     await init();
   }
 
-  return await marketplaceContract.methods.getTasks().call();
+  return await marketplaceContract.methods.getTasks().call({
+    from: selectedAccount,
+  });
 }
+
+export async function getAssessors(): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.getAssessors().call({
+    from: selectedAccount,
+  });
+}
+

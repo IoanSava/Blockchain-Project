@@ -4,7 +4,7 @@ import { Form, Button, Table } from "react-bootstrap";
 import { BsFillInfoCircleFill } from "react-icons/bs";
 import "./css/Tasks.css";
 import { Task } from "../models/Task";
-import { createNewTask, getTasks } from "../Web3Client";
+import { createNewTask, getTasks, getAssessors } from "../Web3Client";
 import data from "./mock-tasks.json";
 
 export default function Tasks() {
@@ -14,27 +14,31 @@ export default function Tasks() {
   const [assessorReward, setAssessorReward] = useState(0);
   const [category, setCategory] = useState("");
   const [tasks, setTasks] = useState(data);
+  const [assessors, setAssessors] = useState("");
+  const [listOfTasks, setListOfTasks] = useState();
 
-  // getTasks().then((tasks) => setTasks([{ "description": "Task1", "freelancerReward": 2, "assessorReward": 3, "category": "Math" }, { "description": "Task2", "freelancerReward": 4, "assessorReward": 7, "category": "Math" }]));
 
-  // setTasks([{ "description": "Task1", "freelancerReward": 2, "assessorReward": 3, "category": "Math" }, { "description": "Task2", "freelancerReward": 4, "assessorReward": 7, "category": "Math" }]);
+  getTasks().then((listOfTasks) => setListOfTasks(listOfTasks));
 
+  getAssessors().then((assessors) => setAssessors(assessors));
 
   interface Props {
     tasksList: Task[];
   }
- 
+
   return (
     <>
       <Helmet>
         <title>{title}</title>
       </Helmet>
-      <br/>
+      <br />
       <div className="page-container">
+        <p>Assessors: {assessors}.</p>
+        <p>List of Tasks: {listOfTasks}.</p>
         <h2>Create a task</h2>
         <Form>
           <Form.Group className="mb-3" controlId="description">
-          <Form.Label>Description</Form.Label>
+            <Form.Label>Description</Form.Label>
             <Form.Control type="text" placeholder="Task1..."
               value={description}
               onChange={(event) => {
@@ -43,8 +47,8 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="freelancerReward">
-          <Form.Label>Freelancer Reward</Form.Label>
-            <Form.Control type="number" placeholder="15..." 
+            <Form.Label>Freelancer Reward</Form.Label>
+            <Form.Control type="number" placeholder="15..."
               value={freelancerReward}
               onChange={(event) => {
                 setFreelancerReward(parseInt(event.target.value));
@@ -52,7 +56,7 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="assessorReward">
-          <Form.Label>Assessor Reward</Form.Label>
+            <Form.Label>Assessor Reward</Form.Label>
             <Form.Control type="number" placeholder="10..."
               value={assessorReward}
               onChange={(event) => {
@@ -61,7 +65,7 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="category">
-          <Form.Label>Category</Form.Label>
+            <Form.Label>Category</Form.Label>
             <Form.Control type="text" placeholder="Math..."
               value={category}
               onChange={(event) => {
@@ -94,16 +98,16 @@ export default function Tasks() {
             </tr>
           </thead>
           <tbody>
-              {tasks.map((task, index) => (
-                <tr key={index}>
-                  <td>{index+1}</td>
-                  <td>{task.description}</td>
-                  <td>{task.freelancerReward}</td>
-                  <td>{task.assessorReward}</td>
-                  <td>{task.category}</td>
-                  <td><BsFillInfoCircleFill onClick={() => { alert('clicked') }} cursor="pointer" /></td>
-                </tr>
-              ))}
+            {tasks.map((task, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{task.description}</td>
+                <td>{task.freelancerReward}</td>
+                <td>{task.assessorReward}</td>
+                <td>{task.category}</td>
+                <td><BsFillInfoCircleFill onClick={() => { alert('clicked') }} cursor="pointer" /></td>
+              </tr>
+            ))}
           </tbody>
         </Table>
       </div>
