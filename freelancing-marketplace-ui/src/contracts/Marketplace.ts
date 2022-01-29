@@ -332,6 +332,30 @@ export const marketplaceContractAbi: AbiItem[] = [
     type: "function",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_contributorAddress",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "_taskId",
+        type: "uint256",
+      },
+    ],
+    name: "getContributorContributionForTask",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "getDoneTasks",
     outputs: [

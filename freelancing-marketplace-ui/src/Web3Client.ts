@@ -6,6 +6,7 @@ import {
 } from "./constants/contract-addresses";
 import { marketplaceContractAbi } from "./contracts/Marketplace";
 import { tokenContractAbi } from "./contracts/Token";
+import { Task } from "./models/Task";
 
 let selectedAccount: string;
 
@@ -77,7 +78,7 @@ export async function createNewTask(
     });
 }
 
-export async function getTasks() {
+export async function getTasks(): Promise<Task[]> {
   if (!isMarketplaceInitialized) {
     await init();
   }
@@ -109,4 +110,76 @@ export async function getRoleByAddress(): Promise<string> {
 
 export function getAddress(): string {
   return selectedAccount;
+}
+
+export async function getTaskById(taskId: number): Promise<Task> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.getTaskById(taskId).call();
+}
+
+export async function cancelTask(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.cancelTask(taskId).send({
+    from: selectedAccount,
+  });
+}
+
+export async function getContributorContributionForTask(
+  taskId: number
+): Promise<number> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .getContributorContributionForTask(selectedAccount, taskId)
+    .call({
+      from: selectedAccount,
+    });
+}
+
+export async function increaseAllowance(addedValue: number): Promise<void> {
+  await tokenContract.methods
+    .increaseAllowance(MARKETPLACE_CONTRACT_ADDRESS, addedValue)
+    .send({
+      from: selectedAccount,
+    });
+}
+
+export async function financeTask(
+  taskId: number,
+  contribution: number
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  await increaseAllowance(contribution);
+
+  return await marketplaceContract.methods
+    .financeTask(taskId, contribution)
+    .send({
+      from: selectedAccount,
+    });
+}
+
+export async function withdrawFunds(
+  taskId: number,
+  fundsToWithdraw: number
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .withdrawFunds(taskId, fundsToWithdraw)
+    .send({
+      from: selectedAccount,
+    });
 }

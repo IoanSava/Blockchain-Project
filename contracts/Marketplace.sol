@@ -294,6 +294,16 @@ contract Marketplace {
         return -1;
     }
 
+    function getContributorContributionForTask(address _contributorAddress, uint256 _taskId) public view returns(uint256) {
+        uint256 numberOfContributions = tasksContributions[_taskId].length;
+        for (uint256 i = 0; i < numberOfContributions; ++i) {
+            if (tasksContributions[_taskId][i].contributorAddress == _contributorAddress) {
+                return tasksContributions[_taskId][i].contribution;
+            }
+        }
+        return 0;
+    }
+
     function createContributorContribution(address _contributorAddress, uint256 _contributionValue, uint256 _taskId) private {
         contributorContributionVar = contributorContribution(_contributorAddress, _contributionValue);
         tasksContributions[_taskId].push(contributorContributionVar);

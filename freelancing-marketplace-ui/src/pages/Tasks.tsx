@@ -11,15 +11,15 @@ export default function Tasks() {
   const title = "Tasks";
 
   const [role, setRole] = useState("");
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const history = useHistory();
 
   useEffect(() => {
     async function init() {
-      const currentTasks = await getTasks();
+      const currentTasks: Task[] = await getTasks();
       setTasks(currentTasks);
-      const currentRole = await getRoleByAddress();
+      const currentRole: string = await getRoleByAddress();
       setRole(currentRole);
     }
     init();

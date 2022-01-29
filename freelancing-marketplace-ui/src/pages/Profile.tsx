@@ -11,9 +11,9 @@ export default function Profile() {
 
   useEffect(() => {
     async function init() {
-      const currentTokens = await getCurrentFunds();
+      const currentTokens: number = await getCurrentFunds();
       setTokens(currentTokens);
-      const currentRole = await getRoleByAddress();
+      const currentRole: string = await getRoleByAddress();
       setRole(currentRole);
     }
     init();
