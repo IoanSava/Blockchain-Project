@@ -262,3 +262,43 @@ export async function markTaskAsDone(taskId: number): Promise<string> {
     from: selectedAccount,
   });
 }
+
+export async function acceptTaskByManager(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.acceptTaskByManager(taskId).send({
+    from: selectedAccount,
+  });
+}
+
+export async function declineTaskByManager(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.declineTaskByManager(taskId).send({
+    from: selectedAccount,
+  });
+}
+
+export async function acceptTaskByAssessor(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.acceptTaskByAssessor(taskId).send({
+    from: selectedAccount,
+  });
+}
+
+export async function declineTaskByAssessor(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.declineTaskByAssessor(taskId).send({
+    from: selectedAccount,
+  });
+}

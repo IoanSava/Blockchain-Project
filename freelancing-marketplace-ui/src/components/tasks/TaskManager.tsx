@@ -5,8 +5,10 @@ import { Assessor } from "../../models/Assessor";
 import { Freelancer } from "../../models/Freelancer";
 import { TaskState } from "../../models/Task";
 import {
+  acceptTaskByManager,
   assignAssessorForTask,
   cancelTask,
+  declineTaskByManager,
   getApplicationsForTask,
   getAssessors,
   selectFreelancerForTask,
@@ -117,7 +119,33 @@ export default function TaskManager(props: Props) {
                 .catch(() => alert("The freelancer assignment failed"));
             }}
           >
-            Assign assessor
+            Assign freelancer
+          </Button>
+        </>
+      );
+    } else if (task.state == TaskState.Done) {
+      return (
+        <>
+          <Button
+            variant="success"
+            onClick={() => {
+              acceptTaskByManager(task.id)
+                .then(() => alert("You accepted the task."))
+                .catch(() => alert("Accepting the task failed."));
+            }}
+          >
+            Accept task
+          </Button>
+          <br />
+          <Button
+            variant="danger"
+            onClick={() => {
+              declineTaskByManager(task.id)
+                .then(() => alert("You declined the task."))
+                .catch(() => alert("Declining the task failed."));
+            }}
+          >
+            Decline task
           </Button>
         </>
       );
