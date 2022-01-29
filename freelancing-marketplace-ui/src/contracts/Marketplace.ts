@@ -38,6 +38,11 @@ export const marketplaceContractAbi: AbiItem[] = [
         name: "_secondFreelancerAddress",
         type: "address",
       },
+      {
+        internalType: "address",
+        name: "_thirdFreelancerAddress",
+        type: "address",
+      },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -262,9 +267,31 @@ export const marketplaceContractAbi: AbiItem[] = [
     name: "getApplicationsForTask",
     outputs: [
       {
-        internalType: "address[]",
+        components: [
+          {
+            internalType: "address",
+            name: "freelancerAddress",
+            type: "address",
+          },
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "category",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "reputation",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct Marketplace.freelancer[]",
         name: "",
-        type: "address[]",
+        type: "tuple[]",
       },
     ],
     stateMutability: "view",
@@ -545,6 +572,47 @@ export const marketplaceContractAbi: AbiItem[] = [
         internalType: "struct Marketplace.task[]",
         name: "",
         type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_address",
+        type: "address",
+      },
+    ],
+    name: "getFreelancerByAddress",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "freelancerAddress",
+            type: "address",
+          },
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "category",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "reputation",
+            type: "uint256",
+          },
+        ],
+        internalType: "struct Marketplace.freelancer",
+        name: "",
+        type: "tuple",
       },
     ],
     stateMutability: "view",

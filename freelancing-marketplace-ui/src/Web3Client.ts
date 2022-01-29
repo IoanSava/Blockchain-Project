@@ -6,6 +6,8 @@ import {
 } from "./constants/contract-addresses";
 import { marketplaceContractAbi } from "./contracts/Marketplace";
 import { tokenContractAbi } from "./contracts/Token";
+import { Assessor } from "./models/Assessor";
+import { Freelancer } from "./models/Freelancer";
 import { Task } from "./models/Task";
 
 let selectedAccount: string;
@@ -88,7 +90,7 @@ export async function getTasks(): Promise<Task[]> {
   });
 }
 
-export async function getAssessors(): Promise<string> {
+export async function getAssessors(): Promise<Assessor[]> {
   if (!isMarketplaceInitialized) {
     await init();
   }
@@ -182,4 +184,81 @@ export async function withdrawFunds(
     .send({
       from: selectedAccount,
     });
+}
+
+export async function assignAssessorForTask(
+  assessorAddress: string,
+  taskId: number
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .assignAssessorForTask(assessorAddress, taskId)
+    .send({
+      from: selectedAccount,
+    });
+}
+
+export async function applyForTask(
+  taskId: number,
+  assessorReward: number
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  await increaseAllowance(assessorReward);
+
+  return await marketplaceContract.methods.applyForTask(taskId).send({
+    from: selectedAccount,
+  });
+}
+
+export async function getFreelancerByAddress(): Promise<Freelancer> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .getFreelancerByAddress(selectedAccount)
+    .call();
+}
+
+export async function getApplicationsForTask(
+  taskId: number
+): Promise<Freelancer[]> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .getApplicationsForTask(taskId)
+    .call();
+}
+
+export async function selectFreelancerForTask(
+  freelancerAddress: string,
+  taskId: number
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .selectFreelancerForTask(freelancerAddress, taskId)
+    .send({
+      from: selectedAccount,
+    });
+}
+
+export async function markTaskAsDone(taskId: number): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.markTaskAsDone(taskId).send({
+    from: selectedAccount,
+  });
 }

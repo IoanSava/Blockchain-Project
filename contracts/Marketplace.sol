@@ -37,13 +37,14 @@ contract Marketplace {
     contributorContribution private contributorContributionVar;
     mapping(uint256 => contributorContribution[]) tasksContributions;
 
-    mapping(uint256 => address[]) tasksFreelancers;
+    mapping(uint256 => freelancer[]) tasksFreelancers;
     
     struct manager {
         string name;
     }
 
     struct freelancer {
+        address freelancerAddress;
         string name;
         string category;
         uint256 reputation;
@@ -116,7 +117,8 @@ contract Marketplace {
         address _firstAssessorAddress,
         address _secondAssessorAddress,
         address _firstFreelancerAddress,
-        address _secondFreelancerAddress
+        address _secondFreelancerAddress,
+        address _thirdFreelancerAddress
     ) {
         token = new Token(TOKENS_INITIAL_SUPPLY);
         emit TokenCreated(address(token));
@@ -129,14 +131,17 @@ contract Marketplace {
         createContributor("Mike", _secondContributorAddress);
         token.transfer(_secondContributorAddress, TOKENS_INITIAL_SUPPLY / 4);
 
-        createAssessor("Rihanna", "web", _firstAssessorAddress);
+        createAssessor("Anna", "web", _firstAssessorAddress);
         createAssessor("Joe", "mobile", _secondAssessorAddress);
 
         createFreelancer("Andres", "web", _firstFreelancerAddress);
         token.transfer(_firstFreelancerAddress, TOKENS_INITIAL_SUPPLY / 4);
 
         createFreelancer("Kamila", "mobile", _secondFreelancerAddress);
-        token.transfer(_secondFreelancerAddress, TOKENS_INITIAL_SUPPLY / 4);
+        token.transfer(_secondFreelancerAddress, TOKENS_INITIAL_SUPPLY / 8);
+
+        createFreelancer("Tobias", "mobile", _thirdFreelancerAddress);
+        token.transfer(_thirdFreelancerAddress, TOKENS_INITIAL_SUPPLY / 8);
     }
 
     function getRoleByAddress(address _address) public view returns (string memory) {
@@ -171,10 +176,14 @@ contract Marketplace {
     }
 
     function createFreelancer(string memory _name, string memory _category, address _address) private returns (string memory) {
-        freelancerVar = freelancer(_name, _category, DEFAULT_REPUTATION);
+        freelancerVar = freelancer(_address, _name, _category, DEFAULT_REPUTATION);
         freelancers[_address] = freelancerVar;
         freelancerAddresses[_address] = true;
         return "[Marketplace] Freelancer created";
+    }
+
+    function getFreelancerByAddress(address _address) public view returns(freelancer memory) {
+        return freelancers[_address];
     }
 
     function createAssessor(string memory _name, string memory _category, address _address) private returns (string memory) {
@@ -400,7 +409,7 @@ contract Marketplace {
     function doesFreelancerAppliedForTask(address _freelancerAddress, uint256 _taskId) private view returns (bool) {
         uint256 numberOfApplications = tasksFreelancers[_taskId].length;
         for (uint256 i = 0; i < numberOfApplications; ++i) {
-            if (tasksFreelancers[_taskId][i] == _freelancerAddress) {
+            if (tasksFreelancers[_taskId][i].freelancerAddress == _freelancerAddress) {
                 return true;
             }
         }
@@ -414,7 +423,7 @@ contract Marketplace {
                 require(compareStrings(tasksList[i].category, freelancers[msg.sender].category), "[Marketplace] The category of the task must be the same as that of the freelancer.");
                 require(!doesFreelancerAppliedForTask(msg.sender, _taskId), "[Marketplace] You already applied for this task.");
             
-                tasksFreelancers[_taskId].push(msg.sender);
+                tasksFreelancers[_taskId].push(freelancers[msg.sender]);
                 bool sent = token.transferFrom(msg.sender, address(this), tasksList[i].assessorReward);
                 require(sent, "[Marketplace] Failed to transfer tokens to marketplace");
 
@@ -424,7 +433,7 @@ contract Marketplace {
         return "[Marketplace] The task was not found.";
     }
 
-    function getApplicationsForTask(uint256 _taskId) public view returns(address[] memory) {
+    function getApplicationsForTask(uint256 _taskId) public view returns(freelancer[] memory) {
         return tasksFreelancers[_taskId];
     }
 
@@ -441,8 +450,8 @@ contract Marketplace {
 
                 uint256 numberOfApplications = tasksFreelancers[_taskId].length;
                 for (uint256 j = 0; j < numberOfApplications; ++j) {
-                    if (tasksFreelancers[_taskId][j] != _freelancerAddress) {
-                        token.transfer(tasksFreelancers[_taskId][j],  tasksList[i].assessorReward);
+                    if (tasksFreelancers[_taskId][j].freelancerAddress != _freelancerAddress) {
+                        token.transfer(tasksFreelancers[_taskId][j].freelancerAddress,  tasksList[i].assessorReward);
                     }
                 }
 
