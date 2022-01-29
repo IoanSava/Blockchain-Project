@@ -11,14 +11,14 @@ export enum TaskState {
 } 
 
 export interface Task {
-    id: number;
+    // id: number;
     description: string;
     freelancerReward: number;
     assessorReward: number; 
     category: string;
-    managerAddress: string;
-    assessorAddress: string;
-    freelancerAddress: string;
-    currentFunds: number;
-    state: TaskState; 
+    // managerAddress: string;
+    // assessorAddress: string;
+    // freelancerAddress: string;
+    // currentFunds: number;
+    // state: TaskState; 
 }

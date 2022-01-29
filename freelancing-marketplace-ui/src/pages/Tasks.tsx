@@ -4,8 +4,8 @@ import { Form, Button, Table } from "react-bootstrap";
 import { BsFillInfoCircleFill } from "react-icons/bs";
 import "./css/Tasks.css";
 import { Task } from "../models/Task";
-import { createNewTask } from "../Web3Client";
-
+import { createNewTask, getTasks } from "../Web3Client";
+import data from "./mock-tasks.json";
 
 export default function Tasks() {
   const title = "Tasks";
@@ -13,26 +13,29 @@ export default function Tasks() {
   const [freelancerReward, setFreelancerReward] = useState(0);
   const [assessorReward, setAssessorReward] = useState(0);
   const [category, setCategory] = useState("");
+  const [tasks, setTasks] = useState(data);
+
+  // getTasks().then((tasks) => setTasks([{ "description": "Task1", "freelancerReward": 2, "assessorReward": 3, "category": "Math" }, { "description": "Task2", "freelancerReward": 4, "assessorReward": 7, "category": "Math" }]));
+
+  // setTasks([{ "description": "Task1", "freelancerReward": 2, "assessorReward": 3, "category": "Math" }, { "description": "Task2", "freelancerReward": 4, "assessorReward": 7, "category": "Math" }]);
 
 
   interface Props {
-    tasks: Task[];
+    tasksList: Task[];
   }
-
-  // handleSubmit = event  = {
-
-  // }
-
+ 
   return (
     <>
       <Helmet>
         <title>{title}</title>
       </Helmet>
+      <br/>
       <div className="page-container">
         <h2>Create a task</h2>
         <Form>
           <Form.Group className="mb-3" controlId="description">
-            <Form.Control type="text" placeholder="Description"
+          <Form.Label>Description</Form.Label>
+            <Form.Control type="text" placeholder="Task1..."
               value={description}
               onChange={(event) => {
                 setDescription(event.target.value);
@@ -40,7 +43,8 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="freelancerReward">
-            <Form.Control type="number" placeholder="Freelancer Reward"
+          <Form.Label>Freelancer Reward</Form.Label>
+            <Form.Control type="number" placeholder="15..." 
               value={freelancerReward}
               onChange={(event) => {
                 setFreelancerReward(parseInt(event.target.value));
@@ -48,7 +52,8 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="assessorReward">
-            <Form.Control type="number" placeholder="Assessor Reward"
+          <Form.Label>Assessor Reward</Form.Label>
+            <Form.Control type="number" placeholder="10..."
               value={assessorReward}
               onChange={(event) => {
                 setAssessorReward(parseInt(event.target.value));
@@ -56,19 +61,20 @@ export default function Tasks() {
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="category">
-            <Form.Control type="text" placeholder="Category"
+          <Form.Label>Category</Form.Label>
+            <Form.Control type="text" placeholder="Math..."
               value={category}
               onChange={(event) => {
                 setCategory(event.target.value);
               }} />
           </Form.Group>
           <Button variant="primary" type="submit"
-          onClick={() => {
-            createNewTask(description, freelancerReward, assessorReward, category)
-              .then(result => {
-                console.log(result);
-              })
-          }}
+            onClick={() => {
+              createNewTask(description, freelancerReward, assessorReward, category)
+                .then(result => {
+                  console.log(result);
+                })
+            }}
           >
             Submit
           </Button>
@@ -88,25 +94,18 @@ export default function Tasks() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>Task1</td>
-              <td>10</td>
-              <td>15</td>
-              <td>Math</td>
-              <td><BsFillInfoCircleFill onClick={() => { alert('clicked') }} cursor="pointer" /></td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>Task2</td>
-              <td>20</td>
-              <td>5</td>
-              <td>Math</td>
-              <td><BsFillInfoCircleFill onClick={() => { alert('clicked') }} cursor="pointer" /></td>
-            </tr>
+              {tasks.map((task, index) => (
+                <tr key={index}>
+                  <td>{index+1}</td>
+                  <td>{task.description}</td>
+                  <td>{task.freelancerReward}</td>
+                  <td>{task.assessorReward}</td>
+                  <td>{task.category}</td>
+                  <td><BsFillInfoCircleFill onClick={() => { alert('clicked') }} cursor="pointer" /></td>
+                </tr>
+              ))}
           </tbody>
         </Table>
-
       </div>
     </>
   );

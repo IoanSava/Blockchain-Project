@@ -6,6 +6,7 @@ import {
 } from "./constants/contract-addresses";
 import { marketplaceContractAbi } from "./contracts/Marketplace";
 import { tokenContractAbi } from "./contracts/Token";
+import { Task } from "./models/Task";
 
 let selectedAccount: string;
 
@@ -61,5 +62,13 @@ export async function createNewTask(_description: string, _freelancerReward: num
     await init();
   }
 
-  return await tokenContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).call();
+  return await marketplaceContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).send({gas: 999999999});
+}
+
+export async function getTasks(): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.getTasks().call();
 }
