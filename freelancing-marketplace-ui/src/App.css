@@ -24,3 +24,7 @@
 h1 {
   font-size: 4rem !important;
 }
+
+.btn-primary {
+  margin: 30px !important;
+}

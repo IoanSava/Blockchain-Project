@@ -55,3 +55,58 @@ export async function getCurrentFunds(): Promise<number> {
 
   return await tokenContract.methods.balanceOf(selectedAccount).call();
 }
+
+export async function createNewTask(
+  description: string,
+  freelancerReward: number,
+  assessorReward: number,
+  category: string
+): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  console.log(
+    `Create task: [${description}, ${freelancerReward}, ${assessorReward}, ${category}].`
+  );
+
+  return await marketplaceContract.methods
+    .createTask(description, freelancerReward, assessorReward, category)
+    .send({
+      from: selectedAccount,
+    });
+}
+
+export async function getTasks() {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.getTasks().call({
+    from: selectedAccount,
+  });
+}
+
+export async function getAssessors(): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods.getAssessors().call({
+    from: selectedAccount,
+  });
+}
+
+export async function getRoleByAddress(): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .getRoleByAddress(selectedAccount)
+    .call();
+}
+
+export function getAddress(): string {
+  return selectedAccount;
+}

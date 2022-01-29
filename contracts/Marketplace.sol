@@ -139,6 +139,26 @@ contract Marketplace {
         token.transfer(_secondFreelancerAddress, TOKENS_INITIAL_SUPPLY / 4);
     }
 
+    function getRoleByAddress(address _address) public view returns (string memory) {
+        if (managerAddresses[_address]) {
+            return "manager";
+        }
+
+        if (freelancerAddresses[_address]) {
+            return "freelancer";
+        }
+
+        if (contributorAddresses[_address]) {
+            return "contributor";
+        }
+
+        if (assessorAddresses[_address]) {
+            return "assessor";
+        }
+
+        return "unknown";
+    }
+
     function compareStrings(string memory str1, string memory str2) private pure returns (bool) {
         return (keccak256(abi.encodePacked((str1))) == keccak256(abi.encodePacked((str2))));
     }
@@ -185,6 +205,10 @@ contract Marketplace {
 
     function getTasks() public view returns(task[] memory) {
         return tasksList;
+    }
+
+    function getTaskById(uint256 _taskId) public view returns(task memory) {
+        return tasksList[_taskId - 1];
     }
 
     function getContributionsForTask(uint256 _taskId) public view returns(contributorContribution[] memory) {

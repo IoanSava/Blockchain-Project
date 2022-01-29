@@ -4,6 +4,60 @@ export const marketplaceContractAbi: AbiItem[] = [
   {
     inputs: [
       {
+        internalType: "address",
+        name: "_managerAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_firstContributorAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_secondContributorAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_firstAssessorAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_secondAssessorAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_firstFreelancerAddress",
+        type: "address",
+      },
+      {
+        internalType: "address",
+        name: "_secondFreelancerAddress",
+        type: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "constructor",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "address",
+        name: "tokenAddress",
+        type: "address",
+      },
+    ],
+    name: "TokenCreated",
+    type: "event",
+  },
+  {
+    inputs: [
+      {
         internalType: "uint256",
         name: "_taskId",
         type: "uint256",
@@ -187,127 +241,6 @@ export const marketplaceContractAbi: AbiItem[] = [
       },
     ],
     name: "financeTask",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_taskId",
-        type: "uint256",
-      },
-    ],
-    name: "markTaskAsDone",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_freelancerAddress",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_taskId",
-        type: "uint256",
-      },
-    ],
-    name: "selectFreelancerForTask",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_managerAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_firstContributorAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_secondContributorAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_firstAssessorAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_secondAssessorAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_firstFreelancerAddress",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "_secondFreelancerAddress",
-        type: "address",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "address",
-        name: "tokenAddress",
-        type: "address",
-      },
-    ],
-    name: "TokenCreated",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_taskId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_tokenAmount",
-        type: "uint256",
-      },
-    ],
-    name: "withdrawFunds",
     outputs: [
       {
         internalType: "string",
@@ -724,6 +657,96 @@ export const marketplaceContractAbi: AbiItem[] = [
     type: "function",
   },
   {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_address",
+        type: "address",
+      },
+    ],
+    name: "getRoleByAddress",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_taskId",
+        type: "uint256",
+      },
+    ],
+    name: "getTaskById",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "id",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "description",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "freelancerReward",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "assessorReward",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "category",
+            type: "string",
+          },
+          {
+            internalType: "address",
+            name: "managerAddress",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "assessorAddress",
+            type: "address",
+          },
+          {
+            internalType: "address",
+            name: "freelancerAddress",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "currentFunds",
+            type: "uint256",
+          },
+          {
+            internalType: "enum Marketplace.TaskState",
+            name: "state",
+            type: "uint8",
+          },
+        ],
+        internalType: "struct Marketplace.task",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "getTasks",
     outputs: [
@@ -916,6 +939,73 @@ export const marketplaceContractAbi: AbiItem[] = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_taskId",
+        type: "uint256",
+      },
+    ],
+    name: "markTaskAsDone",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_freelancerAddress",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "_taskId",
+        type: "uint256",
+      },
+    ],
+    name: "selectFreelancerForTask",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_taskId",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "_tokenAmount",
+        type: "uint256",
+      },
+    ],
+    name: "withdrawFunds",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ];

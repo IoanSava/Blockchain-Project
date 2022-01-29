@@ -7,6 +7,8 @@ import CustomNavbar from "./components/CustomNavbar";
 import React from "react";
 import Profile from "./pages/Profile";
 import { init } from "./Web3Client";
+import CreateTask from "./pages/CreateTask";
+import TaskInformation from "./pages/TaskInformation";
 
 function App() {
   useEffect(() => {
@@ -17,9 +19,14 @@ function App() {
     <Router>
       <CustomNavbar />
       <Switch>
-        <Route path="/" exact render={() => <Home />} />
+        <Route
+          path="/tasks/:id"
+          render={(props) => <TaskInformation {...props} />}
+        />
         <Route path="/tasks" render={() => <Tasks />} />
+        <Route path="/tasks-create" render={() => <CreateTask />} />
         <Route path="/profile" render={() => <Profile />} />
+        <Route path="/" exact render={() => <Home />} />
       </Switch>
     </Router>
   );
