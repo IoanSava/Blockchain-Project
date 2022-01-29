@@ -1,8 +1,9 @@
 import React from "react";
 import { Helmet } from "react-helmet";
 
-export default function TaskInformation() {
-  const title = "TaskInformation";
+export default function TaskInformation(props: any) {
+  const title = "Task information";
+  const id = props.match.params.id;
 
   return (
     <>

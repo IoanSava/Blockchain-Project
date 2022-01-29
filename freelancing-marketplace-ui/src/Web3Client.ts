@@ -6,7 +6,6 @@ import {
 } from "./constants/contract-addresses";
 import { marketplaceContractAbi } from "./contracts/Marketplace";
 import { tokenContractAbi } from "./contracts/Token";
-import { Task } from "./models/Task";
 
 let selectedAccount: string;
 
@@ -14,7 +13,6 @@ let tokenContract: Contract;
 let marketplaceContract: Contract;
 
 let isMarketplaceInitialized: boolean = false;
-
 
 export async function init(): Promise<void> {
   let provider = (window as any).ethereum;
@@ -58,14 +56,25 @@ export async function getCurrentFunds(): Promise<number> {
   return await tokenContract.methods.balanceOf(selectedAccount).call();
 }
 
-export async function createNewTask(_description: string, _freelancerReward: number, _assessorReward: number, _category: string): Promise<string> {
+export async function createNewTask(
+  description: string,
+  freelancerReward: number,
+  assessorReward: number,
+  category: string
+): Promise<string> {
   if (!isMarketplaceInitialized) {
     await init();
   }
 
-  return await marketplaceContract.methods.createTask(_description, _freelancerReward, _assessorReward, _category).call({
-    from: selectedAccount,
-  });
+  console.log(
+    `Create task: [${description}, ${freelancerReward}, ${assessorReward}, ${category}].`
+  );
+
+  return await marketplaceContract.methods
+    .createTask(description, freelancerReward, assessorReward, category)
+    .send({
+      from: selectedAccount,
+    });
 }
 
 export async function getTasks() {
@@ -88,3 +97,16 @@ export async function getAssessors(): Promise<string> {
   });
 }
 
+export async function getRoleByAddress(): Promise<string> {
+  if (!isMarketplaceInitialized) {
+    await init();
+  }
+
+  return await marketplaceContract.methods
+    .getRoleByAddress(selectedAccount)
+    .call();
+}
+
+export function getAddress(): string {
+  return selectedAccount;
+}

@@ -1,12 +1,23 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
-import { getCurrentFunds } from "../Web3Client";
+import { getAddress, getCurrentFunds, getRoleByAddress } from "../Web3Client";
 
 export default function Profile() {
   const title = "Profile";
-  const [tokens, setTokens] = React.useState(0);
+  const address = getAddress();
 
-  getCurrentFunds().then((funds) => setTokens(funds));
+  const [tokens, setTokens] = useState(0);
+  const [role, setRole] = useState("");
+
+  useEffect(() => {
+    async function init() {
+      const currentTokens = await getCurrentFunds();
+      setTokens(currentTokens);
+      const currentRole = await getRoleByAddress();
+      setRole(currentRole);
+    }
+    init();
+  }, []);
 
   return (
     <>
@@ -17,7 +28,11 @@ export default function Profile() {
         <div className="title">
           <h1>Profile</h1>
         </div>
+        <p>You are a {role}.</p>
         <p>Your funds: {tokens} tokens.</p>
+        <p>
+          Your address: <strong>{address}</strong>.
+        </p>
       </div>
     </>
   );
