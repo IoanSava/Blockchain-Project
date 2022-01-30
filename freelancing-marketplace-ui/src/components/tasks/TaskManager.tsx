@@ -28,7 +28,7 @@ export default function TaskManager(props: Props) {
     async function init() {
       const currentAssessors: Assessor[] = await getAssessors();
       const filteredAssessors: Assessor[] = currentAssessors.filter(
-        (assessor: Assessor) => assessor.category === task.category
+        (assessor: Assessor) => assessor.category.toLowerCase() === task.category.toLowerCase()
       );
       setAssessors(filteredAssessors);
       if (filteredAssessors.length > 0) {
@@ -71,8 +71,8 @@ export default function TaskManager(props: Props) {
                 setSelectedAssessorAddress(event.target.value);
               }}
             >
-              {assessors.map((assessor: Assessor) => (
-                <option value={assessor.assessorAddress}>
+              {assessors.map((assessor: Assessor, index: number) => (
+                <option key={index} value={assessor.assessorAddress}>
                   {assessor.name} - {assessor.assessorAddress}
                 </option>
               ))}
@@ -102,8 +102,8 @@ export default function TaskManager(props: Props) {
                 setSelectedFreelancerAddress(event.target.value);
               }}
             >
-              {freelancers.map((freelancer: Freelancer) => (
-                <option value={freelancer.freelancerAddress}>
+              {freelancers.map((freelancer: Freelancer, index: number) => (
+                <option key={index} value={freelancer.freelancerAddress}>
                   {freelancer.name} - {freelancer.freelancerAddress}{" "}
                   (reputation: {freelancer.reputation})
                 </option>
