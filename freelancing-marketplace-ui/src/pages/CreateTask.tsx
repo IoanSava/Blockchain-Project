@@ -81,7 +81,7 @@ export default function CreateTask() {
                   description,
                   freelancerReward,
                   assessorReward,
-                  category
+                  category.toLowerCase()
                 )
                   .then(() => alert("Task created"))
                   .catch(() => alert("Task creation failed"));
